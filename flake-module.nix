@@ -52,7 +52,7 @@ let
     if homesById ? ${id} then homesById.${id}
     else throw "nix-config-framework: host references unknown home '${id}'";
 
-  mkSpecialArgs = system: name: extra: {
+  mkSpecialArgs = system: name: extra: cfg.extraSpecialArgs // {
     inherit inputs self system;
     configName = name;
   } // extra;
@@ -106,8 +106,7 @@ let
         modules = [
           { networking.hostName = host.hostName or host.hostname or host.name; }
           { nixpkgs = frameworkLib.nixpkgsArgs host; }
-          (hmConnectionModule platform host)
-        ] ++ frameworkLib.targetModules host;
+        ] ++ lib.optionals ((host.homes or { }) != { }) [ (hmConnectionModule platform host) ] ++ frameworkLib.targetModules host;
       }
     );
 
@@ -139,6 +138,11 @@ in
     root = lib.mkOption {
       type = lib.types.path;
       description = "Repository root containing modules/, hosts/, and homes/.";
+    };
+    extraSpecialArgs = lib.mkOption {
+      type = lib.types.attrs;
+      default = { };
+      description = "Arguments supplied to every generated NixOS, nix-darwin, and Home Manager module.";
     };
     inventory = lib.mkOption {
       type = lib.types.attrs;

@@ -19,6 +19,8 @@ inputs.nix-config-framework.inputs.nix-darwin.follows = "nix-darwin";
 # inside flake-parts mkFlake
 imports = [ inputs.nix-config-framework.flakeModules.default ];
 nixConfigFramework.root = ./.;
+# Optional project-specific helpers for discovered modules:
+# nixConfigFramework.extraSpecialArgs.myLib = myLib;
 ```
 
 When using a git submodule, add `self.submodules = true;` to the root flake so
