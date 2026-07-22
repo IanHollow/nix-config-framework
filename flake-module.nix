@@ -82,7 +82,11 @@ let
         // (cfg.extraSpecialArgsFor {
           kind = "home";
           target = home;
-        });
+        })
+        // {
+          inherit (home) system;
+          configName = homeId home;
+        };
       home = {
         username = lib.mkForce username;
         homeDirectory = lib.mkForce home.homeDirectory;
@@ -127,9 +131,11 @@ let
         useGlobalPkgs = true;
         useUserPackages = true;
         backupFileExtension = "hm.old";
-        extraSpecialArgs = mkSpecialArgs platform host host.system host.name (
-          host.homeManagerExtraSpecialArgs or { }
-        );
+        # Home Manager's extraSpecialArgs are shared by every attached user and
+        # take precedence over each user's _module.args. Keep target-specific
+        # arguments in mkHomeModule so one host cannot shadow its homes' args.
+        extraSpecialArgs =
+          cfg.extraSpecialArgs // { inherit inputs self; } // (host.homeManagerExtraSpecialArgs or { });
         inherit users;
       };
       users.users = declaredUsers;
