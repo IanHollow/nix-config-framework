@@ -135,7 +135,13 @@ let
         # take precedence over each user's _module.args. Keep target-specific
         # arguments in mkHomeModule so one host cannot shadow its homes' args.
         extraSpecialArgs =
-          cfg.extraSpecialArgs // { inherit inputs self; } // (host.homeManagerExtraSpecialArgs or { });
+          cfg.extraSpecialArgs
+          // {
+            inherit inputs self;
+            inherit (host) system;
+            configName = host.name;
+          }
+          // (host.homeManagerExtraSpecialArgs or { });
         inherit users;
       };
       users.users = declaredUsers;
