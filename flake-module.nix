@@ -129,7 +129,7 @@ let
             programs.home-manager.enable = true;
           }
         ] ++ frameworkLib.targetModules home;
-      };
+      }
     );
 in
 {
