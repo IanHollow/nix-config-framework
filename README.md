@@ -70,6 +70,17 @@ its selected generic features. Keep helpers and inactive experiments outside
 }
 ```
 
+For a nix-darwin host, set a login shell in the attached user's `user` attribute
+set. The framework registers every such shell in `environment.shells`, which
+causes nix-darwin to manage `/etc/shells` with the same login-shell path.
+
+```nix
+homes.alice = {
+  config = "alice@work";
+  user.shell = pkgs.nushell;
+};
+```
+
 The flake exports typed `flake.modules.{nixos,homeManager,darwin}` and the
 compatibility aliases `nixosModules`, `homeModules`, and `darwinModules`, as
 well as `nixosConfigurations`, `darwinConfigurations`, and `homeConfigurations`.

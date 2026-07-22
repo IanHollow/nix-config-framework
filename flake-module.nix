@@ -117,6 +117,11 @@ let
         in
         (connection.user or { }) // { home = lib.mkDefault home.homeDirectory; }
       ) (lib.filterAttrs (_: connection: connection ? user) connections);
+      declaredShells = lib.unique (
+        lib.filter (shell: shell != null) (
+          map (connection: (connection.user or { }).shell or null) (lib.attrValues connections)
+        )
+      );
     in
     {
       imports = [
@@ -145,6 +150,12 @@ let
         inherit users;
       };
       users.users = declaredUsers;
+    }
+    // lib.optionalAttrs (platform == "darwin" && declaredShells != [ ]) {
+      # nix-darwin only generates /etc/shells for this option. Register each
+      # explicitly assigned login shell so macOS accepts the same path used by
+      # users.users.<name>.shell.
+      environment.shells = declaredShells;
     };
 
   mkHost =

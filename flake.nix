@@ -25,6 +25,9 @@
       };
       embeddedHomeTargetKind =
         integrationFixture.darwinConfigurations.fixture.config.home-manager.users.alice.home.sessionVariables.FRAMEWORK_TARGET_KIND;
+      fixtureNushell = inputs.nixpkgs.legacyPackages.aarch64-darwin.nushell;
+      fixtureNushellPath = "/run/current-system/sw/bin/${fixtureNushell.meta.mainProgram}";
+      registeredDarwinShells = map toString integrationFixture.darwinConfigurations.fixture.config.environment.shells;
     in
     {
       lib = import ./lib { inherit (nixpkgs) lib; };
@@ -32,6 +35,7 @@
       checks.x86_64-linux.discovery =
         assert testPasses;
         assert embeddedHomeTargetKind == "home";
+        assert nixpkgs.lib.elem fixtureNushellPath registeredDarwinShells;
         nixpkgs.legacyPackages.x86_64-linux.runCommandNoCC "discovery" { } "touch $out";
     };
 }
