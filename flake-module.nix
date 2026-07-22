@@ -8,7 +8,6 @@ let
   nixosModules = frameworkLib.disjoint
     (frameworkLib.mkModuleSet (root + "/modules/nixos"))
     (frameworkLib.mkSharedModuleSet {
-      inherit moduleArgs;
       args = moduleArgs;
       class = "nixos";
       root = root + "/modules/shared";
@@ -16,7 +15,6 @@ let
   homeModules = frameworkLib.disjoint
     (frameworkLib.mkModuleSet (root + "/modules/home"))
     (frameworkLib.mkSharedModuleSet {
-      inherit moduleArgs;
       args = moduleArgs;
       class = "homeManager";
       root = root + "/modules/shared";
@@ -24,7 +22,6 @@ let
   darwinModules = frameworkLib.disjoint
     (frameworkLib.mkModuleSet (root + "/modules/darwin"))
     (frameworkLib.mkSharedModuleSet {
-      inherit moduleArgs;
       args = moduleArgs;
       class = "darwin";
       root = root + "/modules/shared";

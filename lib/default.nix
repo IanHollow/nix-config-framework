@@ -12,7 +12,7 @@ let
   uniqueAttrs = values:
     let
       names = map (value: value.name) values;
-      duplicate = builtins.findFirst (name: builtins.length (filter (candidate: candidate == name) names) > 1) null names;
+      duplicate = lib.findFirst (name: builtins.length (filter (candidate: candidate == name) names) > 1) null names;
     in
     if duplicate != null then throw "nix-config-framework: duplicate generated selector '${duplicate}'" else listToAttrs values;
 
