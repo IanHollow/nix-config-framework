@@ -1,31 +1,40 @@
-{ inputs, lib, config, withSystem, self, ... }@flakeArgs:
+{
+  inputs,
+  lib,
+  config,
+  withSystem,
+  self,
+  ...
+}@flakeArgs:
 let
   frameworkLib = import ./lib { inherit lib; };
   cfg = config.nixConfigFramework;
   root = cfg.root;
-  moduleArgs = flakeArgs // { inherit root; };
+  moduleArgs = flakeArgs // {
+    inherit root;
+  };
 
-  nixosModules = frameworkLib.disjoint
-    (frameworkLib.mkModuleSet (root + "/modules/nixos"))
-    (frameworkLib.mkSharedModuleSet {
+  nixosModules = frameworkLib.disjoint (frameworkLib.mkModuleSet (root + "/modules/nixos")) (
+    frameworkLib.mkSharedModuleSet {
       args = moduleArgs;
       class = "nixos";
       root = root + "/modules/shared";
-    });
-  homeModules = frameworkLib.disjoint
-    (frameworkLib.mkModuleSet (root + "/modules/home"))
-    (frameworkLib.mkSharedModuleSet {
+    }
+  );
+  homeModules = frameworkLib.disjoint (frameworkLib.mkModuleSet (root + "/modules/home")) (
+    frameworkLib.mkSharedModuleSet {
       args = moduleArgs;
       class = "homeManager";
       root = root + "/modules/shared";
-    });
-  darwinModules = frameworkLib.disjoint
-    (frameworkLib.mkModuleSet (root + "/modules/darwin"))
-    (frameworkLib.mkSharedModuleSet {
+    }
+  );
+  darwinModules = frameworkLib.disjoint (frameworkLib.mkModuleSet (root + "/modules/darwin")) (
+    frameworkLib.mkSharedModuleSet {
       args = moduleArgs;
       class = "darwin";
       root = root + "/modules/shared";
-    });
+    }
+  );
 
   homes = frameworkLib.readTargetSpecs {
     root = root + "/homes";
@@ -44,20 +53,40 @@ let
   };
 
   homeId = spec: "${spec.username}@${spec.name}";
-  homesById = lib.listToAttrs (map (spec: lib.nameValuePair (homeId spec) spec) (lib.attrValues homes));
-  resolveHome = id:
-    if homesById ? ${id} then homesById.${id}
-    else throw "nix-config-framework: host references unknown home '${id}'";
+  homesById = lib.listToAttrs (
+    map (spec: lib.nameValuePair (homeId spec) spec) (lib.attrValues homes)
+  );
+  resolveHome =
+    id:
+    if homesById ? ${id} then
+      homesById.${id}
+    else
+      throw "nix-config-framework: host references unknown home '${id}'";
 
-  mkSpecialArgs = kind: target: system: name: extra: cfg.extraSpecialArgs // (cfg.extraSpecialArgsFor { inherit kind target; }) // {
-    inherit inputs self system;
-    configName = name;
-  } // extra;
+  mkSpecialArgs =
+    kind: target: system: name: extra:
+    cfg.extraSpecialArgs
+    // (cfg.extraSpecialArgsFor { inherit kind target; })
+    // {
+      inherit inputs self system;
+      configName = name;
+    }
+    // extra;
 
-  mkHomeModule = { username, home, extraModules ? [ ] }:
+  mkHomeModule =
+    {
+      username,
+      home,
+      extraModules ? [ ],
+    }:
     { lib, ... }: {
       imports = frameworkLib.targetModules home ++ extraModules;
-      _module.args = cfg.extraSpecialArgs // (cfg.extraSpecialArgsFor { kind = "home"; target = home; });
+      _module.args =
+        cfg.extraSpecialArgs
+        // (cfg.extraSpecialArgsFor {
+          kind = "home";
+          target = home;
+        });
       home = {
         username = lib.mkForce username;
         homeDirectory = lib.mkForce (home.homeDirectory);
@@ -67,55 +96,88 @@ let
       programs.home-manager.enable = true;
     };
 
-  hmConnectionModule = platform: host: { ... }:
+  hmConnectionModule =
+    platform: host:
+    { ... }:
     let
       connections = host.homes or { };
       users = lib.mapAttrs (
         username: connection:
-        let home = resolveHome connection.config;
-        in mkHomeModule {
+        let
+          home = resolveHome connection.config;
+        in
+        mkHomeModule {
           inherit username home;
           extraModules = connection.extraModules or [ ];
         }
       ) connections;
       declaredUsers = lib.mapAttrs (
         username: connection:
-        let home = resolveHome connection.config;
-        in (connection.user or { }) // { home = lib.mkDefault home.homeDirectory; }
+        let
+          home = resolveHome connection.config;
+        in
+        (connection.user or { }) // { home = lib.mkDefault home.homeDirectory; }
       ) (lib.filterAttrs (_: connection: connection ? user) connections);
     in
     {
-      imports = [ (if platform == "nixos" then inputs.home-manager.nixosModules.home-manager else inputs.home-manager.darwinModules.home-manager) ];
+      imports = [
+        (
+          if platform == "nixos" then
+            inputs.home-manager.nixosModules.home-manager
+          else
+            inputs.home-manager.darwinModules.home-manager
+        )
+      ];
       home-manager = {
         useGlobalPkgs = true;
         useUserPackages = true;
         backupFileExtension = "hm.old";
-        extraSpecialArgs = mkSpecialArgs platform host host.system host.name (host.homeManagerExtraSpecialArgs or { });
+        extraSpecialArgs = mkSpecialArgs platform host host.system host.name (
+          host.homeManagerExtraSpecialArgs or { }
+        );
         inherit users;
       };
       users.users = declaredUsers;
     };
 
-  mkHost = platform: builder: host:
-    withSystem host.system ({ inputs', self', ... }:
+  mkHost =
+    platform: builder: host:
+    withSystem host.system (
+      { inputs', self', ... }:
       builder {
         system = host.system;
-        specialArgs = mkSpecialArgs platform host host.system host.name ({ inherit inputs' self' homeModules homesById; } // (host.specialArgs or { }));
+        specialArgs = mkSpecialArgs platform host host.system host.name (
+          {
+            inherit
+              inputs'
+              self'
+              homeModules
+              homesById
+              ;
+          }
+          // (host.specialArgs or { })
+        );
         modules = [
           { networking.hostName = host.hostName or host.hostname or host.name; }
           { nixpkgs = frameworkLib.nixpkgsArgs host; }
-        ] ++ lib.optionals ((host.homes or { }) != { }) [ (hmConnectionModule platform host) ] ++ frameworkLib.targetModules host;
+        ]
+        ++ lib.optionals ((host.homes or { }) != { }) [ (hmConnectionModule platform host) ]
+        ++ frameworkLib.targetModules host;
       }
     );
 
-  mkStandaloneHome = home:
-    withSystem home.system ({ inputs', self', ... }:
+  mkStandaloneHome =
+    home:
+    withSystem home.system (
+      { inputs', self', ... }:
       let
         pkgs = import inputs.nixpkgs ({ system = home.system; } // frameworkLib.nixpkgsArgs home);
       in
       inputs.home-manager.lib.homeManagerConfiguration {
         inherit pkgs;
-        extraSpecialArgs = mkSpecialArgs "home" home home.system (homeId home) ({ inherit inputs' self'; } // (home.extraSpecialArgs or { }));
+        extraSpecialArgs = mkSpecialArgs "home" home home.system (homeId home) (
+          { inherit inputs' self'; } // (home.extraSpecialArgs or { })
+        );
         modules = [
           {
             home = {
@@ -125,7 +187,8 @@ let
             };
             programs.home-manager.enable = true;
           }
-        ] ++ frameworkLib.targetModules home;
+        ]
+        ++ frameworkLib.targetModules home;
       }
     );
 in
@@ -155,20 +218,38 @@ in
   };
 
   config = {
-    systems = lib.mkDefault [ "x86_64-linux" "aarch64-linux" "x86_64-darwin" "aarch64-darwin" ];
+    systems = lib.mkDefault [
+      "x86_64-linux"
+      "aarch64-linux"
+      "x86_64-darwin"
+      "aarch64-darwin"
+    ];
     nixConfigFramework.inventory = {
-      modules = { nixos = nixosModules; homeManager = homeModules; darwin = darwinModules; };
+      modules = {
+        nixos = nixosModules;
+        homeManager = homeModules;
+        darwin = darwinModules;
+      };
       homes = homesById;
-      hosts = { nixos = nixosHosts; darwin = darwinHosts; };
+      hosts = {
+        nixos = nixosHosts;
+        darwin = darwinHosts;
+      };
     };
     flake = {
-      modules = { nixos = nixosModules; homeManager = homeModules; darwin = darwinModules; };
+      modules = {
+        nixos = nixosModules;
+        homeManager = homeModules;
+        darwin = darwinModules;
+      };
       nixosModules = nixosModules;
       homeModules = homeModules;
       darwinModules = darwinModules;
       homeConfigurations = lib.mapAttrs (_: mkStandaloneHome) homesById;
       nixosConfigurations = lib.mapAttrs (_: mkHost "nixos" inputs.nixpkgs.lib.nixosSystem) nixosHosts;
-      darwinConfigurations = lib.mapAttrs (_: mkHost "darwin" inputs.nix-darwin.lib.darwinSystem) darwinHosts;
+      darwinConfigurations = lib.mapAttrs (
+        _: mkHost "darwin" inputs.nix-darwin.lib.darwinSystem
+      ) darwinHosts;
     };
   };
 }

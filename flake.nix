@@ -11,13 +11,16 @@
     nix-darwin.inputs.nixpkgs.follows = "nixpkgs";
   };
 
-  outputs = { nixpkgs, ... }:
+  outputs =
+    { nixpkgs, ... }:
     let
       testPasses = import ./tests { lib = nixpkgs.lib; };
     in
     {
       lib = import ./lib { lib = nixpkgs.lib; };
       flakeModules.default = import ./flake-module.nix;
-      checks.x86_64-linux.discovery = assert testPasses; nixpkgs.legacyPackages.x86_64-linux.runCommandNoCC "discovery" { } "touch $out";
+      checks.x86_64-linux.discovery =
+        assert testPasses;
+        nixpkgs.legacyPackages.x86_64-linux.runCommandNoCC "discovery" { } "touch $out";
     };
 }
