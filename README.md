@@ -36,8 +36,9 @@ homes/<profile>/{default.nix,local/}
 
 `modules/nixos/hardware/sound/pipewire.nix` is selectable as
 `hardware-sound-pipewire`. Selecting `hardware-sound` imports every Nix file
-below that directory. A directory `default.nix` is included in the directory
-aggregate; it does not need to import its siblings.
+below that directory when it has no `default.nix`. A directory with a
+`default.nix` is a deliberate feature boundary: selecting it imports that
+default module, while its children remain independently selectable variants.
 
 `modules/shared/foo.nix` returns an envelope with any combination of
 `nixos`, `homeManager`, and `darwin` modules. Only the matching class is

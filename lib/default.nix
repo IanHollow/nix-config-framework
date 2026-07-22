@@ -52,7 +52,13 @@ let
     uniqueAttrs (map (
       entry: {
         name = entry.key;
-        value = if entry.kind == "file" then entry.child else aggregate (recursiveNixFiles entry.child);
+        value =
+          if entry.kind == "file" then
+            entry.child
+          else if pathExists (entry.child + "/default.nix") then
+            entry.child
+          else
+            aggregate (recursiveNixFiles entry.child);
       }
     ) (selectorEntries root));
 
@@ -67,7 +73,14 @@ let
     in
     uniqueAttrs (lib.concatMap (
       entry:
-      let value = if entry.kind == "file" then select entry.child else aggregate (selectMany (recursiveNixFiles entry.child));
+      let
+        value =
+          if entry.kind == "file" then
+            select entry.child
+          else if pathExists (entry.child + "/default.nix") then
+            select entry.child
+          else
+            aggregate (selectMany (recursiveNixFiles entry.child));
       in if value == null then [ ] else [ { name = entry.key; inherit value; } ]
     ) (selectorEntries root));
 
