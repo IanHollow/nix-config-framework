@@ -40,13 +40,12 @@ below that directory when it has no `default.nix`. A directory with a
 `default.nix` is a deliberate feature boundary: selecting it imports that
 default module, while its children remain independently selectable variants.
 
-`modules/shared/foo.nix` returns an envelope with any combination of
-`nixos`, `homeManager`, and `darwin` modules. Only the matching class is
-exported.
+`modules/shared/foo.nix` returns an envelope with any combination of `nixos`,
+`homeManager`, and `darwin` modules. Only the matching class is exported.
 
-Every file beneath a target's `local/` directory is imported automatically
-after its selected generic features. Keep helpers and inactive experiments
-outside `local/` (for example under `archive/`).
+Every file beneath a target's `local/` directory is imported automatically after
+its selected generic features. Keep helpers and inactive experiments outside
+`local/` (for example under `archive/`).
 
 ## Target specifications
 
@@ -73,7 +72,6 @@ outside `local/` (for example under `archive/`).
 
 The flake exports typed `flake.modules.{nixos,homeManager,darwin}` and the
 compatibility aliases `nixosModules`, `homeModules`, and `darwinModules`, as
-well as `nixosConfigurations`, `darwinConfigurations`, and
-`homeConfigurations`. `config.nixConfigFramework.inventory` is available to
-other flake-parts modules in the same flake for extensions such as secret
-indexing.
+well as `nixosConfigurations`, `darwinConfigurations`, and `homeConfigurations`.
+`config.nixConfigFramework.inventory` is available to other flake-parts modules
+in the same flake for extensions such as secret indexing.
