@@ -4,7 +4,6 @@ let
     attrNames
     concatLists
     filter
-    foldl'
     isFunction
     listToAttrs
     pathExists
@@ -187,7 +186,7 @@ let
           in
           [
             {
-              name = name;
+              inherit name;
               value = spec // {
                 inherit name path;
                 folderName = name;
