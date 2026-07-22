@@ -9,7 +9,7 @@
 let
   frameworkLib = import ./lib { inherit lib; };
   cfg = config.nixConfigFramework;
-  root = cfg.root;
+  inherit (cfg) root;
   moduleArgs = flakeArgs // {
     inherit root;
   };
@@ -57,11 +57,7 @@ let
     map (spec: lib.nameValuePair (homeId spec) spec) (lib.attrValues homes)
   );
   resolveHome =
-    id:
-    if homesById ? ${id} then
-      homesById.${id}
-    else
-      throw "nix-config-framework: host references unknown home '${id}'";
+    id: homesById.${id} or (throw "nix-config-framework: host references unknown home '${id}'");
 
   mkSpecialArgs =
     kind: target: system: name: extra:
@@ -89,7 +85,7 @@ let
         });
       home = {
         username = lib.mkForce username;
-        homeDirectory = lib.mkForce (home.homeDirectory);
+        homeDirectory = lib.mkForce home.homeDirectory;
         uid = lib.mkForce (home.uid or null);
       };
       nix.package = lib.mkForce null;
@@ -97,8 +93,7 @@ let
     };
 
   hmConnectionModule =
-    platform: host:
-    { ... }:
+    platform: host: _:
     let
       connections = host.homes or { };
       users = lib.mapAttrs (
@@ -112,7 +107,7 @@ let
         }
       ) connections;
       declaredUsers = lib.mapAttrs (
-        username: connection:
+        _username: connection:
         let
           home = resolveHome connection.config;
         in
@@ -145,7 +140,7 @@ let
     withSystem host.system (
       { inputs', self', ... }:
       builder {
-        system = host.system;
+        inherit (host) system;
         specialArgs = mkSpecialArgs platform host host.system host.name (
           {
             inherit
@@ -171,7 +166,7 @@ let
     withSystem home.system (
       { inputs', self', ... }:
       let
-        pkgs = import inputs.nixpkgs ({ system = home.system; } // frameworkLib.nixpkgsArgs home);
+        pkgs = import inputs.nixpkgs ({ inherit (home) system; } // frameworkLib.nixpkgsArgs home);
       in
       inputs.home-manager.lib.homeManagerConfiguration {
         inherit pkgs;
@@ -242,9 +237,9 @@ in
         homeManager = homeModules;
         darwin = darwinModules;
       };
-      nixosModules = nixosModules;
-      homeModules = homeModules;
-      darwinModules = darwinModules;
+      inherit nixosModules;
+      inherit homeModules;
+      inherit darwinModules;
       homeConfigurations = lib.mapAttrs (_: mkStandaloneHome) homesById;
       nixosConfigurations = lib.mapAttrs (_: mkHost "nixos" inputs.nixpkgs.lib.nixosSystem) nixosHosts;
       darwinConfigurations = lib.mapAttrs (

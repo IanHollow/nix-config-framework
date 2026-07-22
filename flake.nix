@@ -14,10 +14,10 @@
   outputs =
     { nixpkgs, ... }:
     let
-      testPasses = import ./tests { lib = nixpkgs.lib; };
+      testPasses = import ./tests { inherit (nixpkgs) lib; };
     in
     {
-      lib = import ./lib { lib = nixpkgs.lib; };
+      lib = import ./lib { inherit (nixpkgs) lib; };
       flakeModules.default = import ./flake-module.nix;
       checks.x86_64-linux.discovery =
         assert testPasses;
