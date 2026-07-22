@@ -89,6 +89,7 @@ let
           name = name;
           value = spec // {
             inherit name path;
+            folderName = name;
             localModules = recursiveNixFiles (path + "/local");
           };
         } ]

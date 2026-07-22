@@ -52,7 +52,7 @@ let
     if homesById ? ${id} then homesById.${id}
     else throw "nix-config-framework: host references unknown home '${id}'";
 
-  mkSpecialArgs = system: name: extra: cfg.extraSpecialArgs // {
+  mkSpecialArgs = kind: target: system: name: extra: cfg.extraSpecialArgs // (cfg.extraSpecialArgsFor { inherit kind target; }) // {
     inherit inputs self system;
     configName = name;
   } // extra;
@@ -60,6 +60,7 @@ let
   mkHomeModule = { username, home, extraModules ? [ ] }:
     { lib, ... }: {
       imports = frameworkLib.targetModules home ++ extraModules;
+      _module.args = cfg.extraSpecialArgs // (cfg.extraSpecialArgsFor { kind = "home"; target = home; });
       home = {
         username = lib.mkForce username;
         homeDirectory = lib.mkForce (home.homeDirectory);
@@ -92,7 +93,7 @@ let
         useGlobalPkgs = true;
         useUserPackages = true;
         backupFileExtension = "hm.old";
-        extraSpecialArgs = mkSpecialArgs host.system host.name (host.homeManagerExtraSpecialArgs or { });
+        extraSpecialArgs = mkSpecialArgs platform host host.system host.name (host.homeManagerExtraSpecialArgs or { });
         inherit users;
       };
       users.users = declaredUsers;
@@ -102,7 +103,7 @@ let
     withSystem host.system ({ inputs', self', ... }:
       builder {
         system = host.system;
-        specialArgs = mkSpecialArgs host.system host.name ({ inherit inputs' self' homeModules homesById; } // (host.specialArgs or { }));
+        specialArgs = mkSpecialArgs platform host host.system host.name ({ inherit inputs' self' homeModules homesById; } // (host.specialArgs or { }));
         modules = [
           { networking.hostName = host.hostName or host.hostname or host.name; }
           { nixpkgs = frameworkLib.nixpkgsArgs host; }
@@ -117,7 +118,7 @@ let
       in
       inputs.home-manager.lib.homeManagerConfiguration {
         inherit pkgs;
-        extraSpecialArgs = mkSpecialArgs home.system (homeId home) ({ inherit inputs' self'; } // (home.extraSpecialArgs or { }));
+        extraSpecialArgs = mkSpecialArgs "home" home home.system (homeId home) ({ inherit inputs' self'; } // (home.extraSpecialArgs or { }));
         modules = [
           {
             home = {
@@ -143,6 +144,11 @@ in
       type = lib.types.attrs;
       default = { };
       description = "Arguments supplied to every generated NixOS, nix-darwin, and Home Manager module.";
+    };
+    extraSpecialArgsFor = lib.mkOption {
+      type = lib.types.raw;
+      default = _: { };
+      description = "Function receiving { kind, target } and returning target-specific special arguments.";
     };
     inventory = lib.mkOption {
       type = lib.types.attrs;
