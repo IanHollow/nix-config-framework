@@ -166,7 +166,7 @@ in
       nixosModules = nixosModules;
       homeModules = homeModules;
       darwinModules = darwinModules;
-      homeConfigurations = lib.mapAttrs (_: mkStandaloneHome) homes;
+      homeConfigurations = lib.mapAttrs (_: mkStandaloneHome) homesById;
       nixosConfigurations = lib.mapAttrs (_: mkHost "nixos" inputs.nixpkgs.lib.nixosSystem) nixosHosts;
       darwinConfigurations = lib.mapAttrs (_: mkHost "darwin" inputs.nix-darwin.lib.darwinSystem) darwinHosts;
     };
